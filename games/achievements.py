@@ -5,6 +5,7 @@ from enum import StrEnum
 from django.db.models import Q
 
 from .models import Game, PlayerStat, Season, all_time_season
+from collections import Counter
 
 ACHIEVEMENTS = []
 
@@ -187,6 +188,55 @@ class StudyHardAchievement(Achievement):
             return AchievementLevel.BASE
         return AchievementLevel.NO_LEVEL
 
+
+class LightningInABottleAchievement(Achievement):
+    name = "Lightning In A Bottle"
+    description = (
+        "Chug a beer in under (11/9/7/5) seconds"
+    )
+    icon = "chugging_fast.svg"
+
+    def get_level(user):
+        time = user.stats_for_season(all_time_season).fastest_chug.duration_ms / 1000
+        if time < 5:
+            return AchievementLevel.GOLD
+        elif time < 7:
+            return AchievementLevel.SILVER
+        elif time < 9:
+            return AchievementLevel.BRONZE
+        elif time < 11:
+            return AchievementLevel.BASE
+        return AchievementLevel.NO_LEVEL
+
+    def is_hidden(user):
+        return LightningInABottleAchievement.get_level(user) == AchievementLevel.NO_LEVEL
+
+class BestFriendAchievement(Achievement):
+    name = "Best Friend"
+    description = (
+        "Have atleast (10/25/50/100) games with your most played with player"
+    )
+    icon = "best_friends.svg"
+
+    def get_level(user):
+        played_with_count = Counter()
+        for game in user.games.filter():
+            for player in game.players.all():
+                if player != user:
+                    played_with_count[player.username] += 1
+        most_played = played_with_count.most_common(1)[0][1]
+        if most_played >= 100:
+            return AchievementLevel.GOLD
+        elif most_played >= 50:
+            return AchievementLevel.SILVER
+        elif most_played >= 25:
+            return AchievementLevel.BRONZE
+        elif most_played >= 10:
+            return AchievementLevel.BASE
+        return AchievementLevel.NO_LEVEL
+
+    def is_hidden(user):
+        return BestFriendAchievement.get_level(user) == AchievementLevel.NO_LEVEL
 
 class PilfingerAchievement(Achievement):
     name = "Pilfinger"
